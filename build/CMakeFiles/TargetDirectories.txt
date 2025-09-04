@@ -1,0 +1,3 @@
+C:/study/C++SEM3/lab1_actions/build/CMakeFiles/hello_world.dir
+C:/study/C++SEM3/lab1_actions/build/CMakeFiles/edit_cache.dir
+C:/study/C++SEM3/lab1_actions/build/CMakeFiles/rebuild_cache.dir
