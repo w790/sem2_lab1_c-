@@ -1,0 +1,4 @@
+# ninja log v6
+37	373	7786978341372437	CMakeFiles/hello_world.dir/main.cpp.obj	d1930ae7caf3556
+6	352	7786978159088178	CMakeFiles/hello_world.dir/func.cpp.obj	5404a08093548379
+373	488	7786978344737885	hello_world.exe	b2ef69c3a5d38c7c
