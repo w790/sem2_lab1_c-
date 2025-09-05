@@ -1,18 +1,28 @@
-cmake_minimum_required(VERSION 3.10)
-project(HelloWorldProject)
+cmake_minimum_required(VERSION 3.10.0)
+project(LAB1 VERSION 0.1.0 LANGUAGES C CXX)
 
-if(DEFINED PROJECT_VERSION)
-    message("Using provided version: ${PROJECT_VERSION}")
+if(DEFINED VERSION_PROJECT)
+    add_definitions(-DVERSION_PROJECT="${VERSION_PROJECT}")
 else()
-    set(PROJECT_VERSION "1.0.0")
-    message("Using default version: ${PROJECT_VERSION}")
+    add_definitions(-DVERSION_PROJECT="0")
 endif()
 
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_executable(LAB1 main.cpp)
 
-add_executable(hello_world main.cpp)
 
-target_compile_definitions(hello_world PRIVATE PROJECT_VERSION="${PROJECT_VERSION}")
 
-target_include_directories(hello_world PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+set(CPACK_PACKAGE_NAME "LAB1")
+
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+
+if(WIN32)
+set(CPACK_GENERATOR "ZIP")
+endif()
+
+if(UNIX AND NOT APPLE)
+set(CPACK_GENERATOR "DEB")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Ivan Obuhov <vanushabrend@gmail.com>")
+endif()
+
+install(TARGETS LAB1 DESTINATION bin)
+include(CPack)

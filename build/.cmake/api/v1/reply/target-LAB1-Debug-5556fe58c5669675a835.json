@@ -2,10 +2,10 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "hello_world.exe"
+			"path" : "LAB1.exe"
 		},
 		{
-			"path" : "hello_world.pdb"
+			"path" : "LAB1.pdb"
 		}
 	],
 	"backtrace" : 1,
@@ -14,8 +14,8 @@
 		"commands" : 
 		[
 			"add_executable",
-			"target_compile_definitions",
-			"target_include_directories"
+			"install",
+			"add_definitions"
 		],
 		"files" : 
 		[
@@ -29,19 +29,19 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 14,
+				"line" : 10,
 				"parent" : 0
 			},
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 16,
+				"line" : 27,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 18,
+				"line" : 7,
 				"parent" : 0
 			}
 		]
@@ -52,39 +52,38 @@
 			"compileCommandFragments" : 
 			[
 				{
-					"fragment" : "-g -std=gnu++11"
+					"fragment" : "-g"
 				}
 			],
 			"defines" : 
 			[
 				{
-					"backtrace" : 2,
-					"define" : "PROJECT_VERSION=\"1.0.0\""
-				}
-			],
-			"includes" : 
-			[
-				{
 					"backtrace" : 3,
-					"path" : "C:/study/C++SEM3/lab1_actions"
+					"define" : "VERSION_PROJECT=\"0\""
 				}
 			],
 			"language" : "CXX",
-			"languageStandard" : 
-			{
-				"backtraces" : 
-				[
-					1
-				],
-				"standard" : "11"
-			},
 			"sourceIndexes" : 
 			[
 				0
 			]
 		}
 	],
-	"id" : "hello_world::@6890427a1f51a3e7e1df",
+	"id" : "LAB1::@6890427a1f51a3e7e1df",
+	"install" : 
+	{
+		"destinations" : 
+		[
+			{
+				"backtrace" : 2,
+				"path" : "bin"
+			}
+		],
+		"prefix" : 
+		{
+			"path" : "C:/Program Files (x86)/HelloWorldProject"
+		}
+	},
 	"link" : 
 	{
 		"commandFragments" : 
@@ -104,8 +103,8 @@
 		],
 		"language" : "CXX"
 	},
-	"name" : "hello_world",
-	"nameOnDisk" : "hello_world.exe",
+	"name" : "LAB1",
+	"nameOnDisk" : "LAB1.exe",
 	"paths" : 
 	{
 		"build" : ".",

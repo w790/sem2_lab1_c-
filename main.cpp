@@ -1,12 +1,12 @@
 #include <iostream>
 
-#ifndef PROJECT_VERSION
-#define PROJECT_VERSION "0.0.0"
+#ifndef VERSION_PROJECT
+#define VERSION_PROJECT "0"
 #endif
 
-int main(){
+int main(int, char**){
     int a;
-    std::cout << "Hello, World! Version " << PROJECT_VERSION;
+    std::cout << "Hello, World! Version " << VERSION_PROJECT;
+    std::cout << "Proverka na raborosposobnost";
     std::cin >> a;
-    return 0;
 }

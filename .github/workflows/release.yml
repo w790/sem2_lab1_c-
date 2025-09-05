@@ -1,122 +1,95 @@
-name: C++ build and release
+name: C++ CI
 
 on:
-  push:
-    branches:
-      - main
+  push
+
+permissions:
+  contents: write
 
 jobs:
   create-release:
     runs-on: ubuntu-latest
     outputs:
       new_tag: ${{ steps.bump_version.outputs.new_tag }}
-    
+
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v3
 
       - name: Get latest tag
         id: get_tag
         run: |
           git fetch --tags
-          last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "1.0.0")
+          last_tag=$(git tag --sort=-creatordate | head -n 1 || echo "0.0.0")
+          if [ -z "$last_tag" ]; then
+            last_tag="0.0.0"
+          fi
           echo "last_tag=$last_tag" >> $GITHUB_ENV
 
       - name: Bump version
         id: bump_version
         run: |
-          IFS='.' read -r major minor patch <<< "${last_tag//v/}"
-          patch=$((patch + 1))
-          new_tag="v$major.$minor.$patch"
+          IFS='.' read -r major minor patch <<< "${last_tag}"
+          patch=$((patch+1))
+          new_tag="$major.$minor.$patch"
           echo "new_tag=$new_tag" >> $GITHUB_ENV
-          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+          echo "new_tag=$new_tag" >> "$GITHUB_OUTPUT"
 
-  build-ubuntu: 
-    runs-on: ubuntu-latest
-    needs: create-release
-    steps: 
-      - uses: actions/checkout@v4
-      
-      - name: Clean build directory
-        run: |
-          rm -rf build
-          mkdir -p build
-          
-      - name: Configure CMake with version
-        run: |
-          echo "Setting version to: ${{ needs.create-release.outputs.new_tag }}"
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DPROJECT_VERSION="${{ needs.create-release.outputs.new_tag }}"
-          
-      - name: Build project
-        run: cmake --build build --config Release
-        
-      - name: Verify version in binary
-        run: |
-          echo "=== Checking binary version ==="
-          ./build/hello_world
-          strings build/hello_world | grep -i "v1\.0\|version" | head -5
-          
-      - uses: actions/upload-artifact@v4
-        with:
-          name: hello-world-ubuntu
-          path: build/hello_world
-
-  build-windows:
-    runs-on: windows-latest 
-    needs: create-release
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Clean build directory
-        run: |
-          Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Path build -Force
-          
-      - name: Configure CMake with version
-        run: |
-          $version = "${{ needs.create-release.outputs.new_tag }}"
-          cmake -B build -DPROJECT_VERSION="$version"
-          
-      - name: Build project
-        run: cmake --build build --config Release
-        
-      - name: Verify version in binary
-        run: |
-          echo "=== Checking binary version ==="
-          .\build\Release\hello_world.exe
-          strings .\build\Release\hello_world.exe | findstr "v1\.0 version" | head -5
-          
-      - uses: actions/upload-artifact@v4
-        with:
-          name: hello-world-windows
-          path: build/Release/hello_world.exe
-
-  publish-release:
-    name: Publish Release
-    runs-on: ubuntu-latest
-    needs: [create-release, build-ubuntu, build-windows]
-    
-    permissions:
-      contents: write
-
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: ./artifacts
-          
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            ./artifacts/hello-world-ubuntu/hello_world
-            ./artifacts/hello-world-windows/hello_world.exe
+          tag_name: ${{ env.new_tag }}
+          name: Release ${{ env.new_tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-linux:
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure (Ninja)
+        run: cmake -G "Ninja" -S . -B build -DVERSION_PROJECT=${{ needs.create-release.outputs.new_tag }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Run
+        run: ./build/LAB1
+
+      - name: Package (Linux)
+        run: cmake --install build --prefix package && cpack -G DEB --config build/CPackConfig.cmake
+
+      - name: Upload Linux package
+        uses: softprops/action-gh-release@v1
+        with:
           tag_name: ${{ needs.create-release.outputs.new_tag }}
-          name: Release ${{ needs.create-release.outputs.new_tag }}
-          body: |
-            Автоматический релиз ${{ needs.create-release.outputs.new_tag }}
-            
-            ### Содержание:
-            - hello_world (Linux)
-            - hello_world.exe (Windows)
+          files: LAB1-*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    needs: create-release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure (Ninja)
+        run: cmake -G "Ninja" -S . -B build -DVERSION_PROJECT="${{ needs.create-release.outputs.new_tag }}"
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Run
+        run: build/LAB1.exe
+
+      - name: Package (Windows)
+        run: cmake --install build --prefix package && cpack -G ZIP --config build/CPackConfig.cmake
+
+      - name: Upload Windows package
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.create-release.outputs.new_tag }}
+          files: LAB1-*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
