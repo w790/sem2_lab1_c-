@@ -1,7 +1,13 @@
 #include <iostream>
-#include "func.h"
 
-int main() {
-    std::cout<< "Hello,World! Version " << getversion() << std::endl;
-    std::cin >> x;
+#ifndef PROJECT_VERSION
+#define PROJECT_VERSION "0.0.0"
+#endif
+
+int main(){
+    int a;
+    std::cout << "Hello, World! Version " << PROJECT_VERSION;
+    std::cout << "проверка на работоспособность";
+    std::cin >> a;
+    return 0;
 }
