@@ -6,8 +6,35 @@ on:
       - main
 
 jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      new_tag: ${{ steps.bump_version.outputs.new_tag }}
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          git fetch --tags
+          last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "1.0.0")
+          echo "last_tag=$last_tag" >> $GITHUB_ENV
+
+      - name: Bump version
+        id: bump_version
+        run: |
+          IFS='.' read -r major minor patch <<< "${last_tag//v/}"
+          patch=$((patch + 1))
+          new_tag="v$major.$minor.$patch"
+          echo "new_tag=$new_tag" >> $GITHUB_ENV
+          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+
   build-ubuntu: 
     runs-on: ubuntu-latest
+    needs: create-release
     steps: 
       - uses: actions/checkout@v4
       
@@ -18,8 +45,8 @@ jobs:
           
       - name: Configure CMake with version
         run: |
-          echo "Setting version to: 1.0.${{ github.run_number }}"
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PROJECT_VERSION="1.0.${{ github.run_number }}"
+          echo "Setting version to: ${{ needs.create-release.outputs.new_tag }}"
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DPROJECT_VERSION="${{ needs.create-release.outputs.new_tag }}"
           
       - name: Build project
         run: cmake --build build --config Release
@@ -27,8 +54,8 @@ jobs:
       - name: Verify version in binary
         run: |
           echo "=== Checking binary version ==="
-          ./build/hello_world || echo "Running binary to check version"
-          strings build/hello_world | grep -i "1.0" | head -5
+          ./build/hello_world
+          strings build/hello_world | grep -i "v1\.0\|version" | head -5
           
       - uses: actions/upload-artifact@v4
         with:
@@ -37,24 +64,19 @@ jobs:
 
   build-windows:
     runs-on: windows-latest 
+    needs: create-release
     steps:
       - uses: actions/checkout@v4
       
-      - name: Update version in source code (Windows)
-        run: |
-          $version = "1.0.${{ github.run_number }}"
-          $content = Get-Content -Path func.cpp -Raw
-          $newContent = $content -replace 'return "1.0\.\d+"', "return `"$version`""
-          Set-Content -Path func.cpp -Value $newContent
-          echo "Updated func.cpp with version: $version"
-          
       - name: Clean build directory
         run: |
           Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Path build -Force
           
-      - name: Configure CMake
-        run: cmake -B build
+      - name: Configure CMake with version
+        run: |
+          $version = "${{ needs.create-release.outputs.new_tag }}"
+          cmake -B build -DPROJECT_VERSION="$version"
           
       - name: Build project
         run: cmake --build build --config Release
@@ -62,19 +84,18 @@ jobs:
       - name: Verify version in binary
         run: |
           echo "=== Checking binary version ==="
-          .\build\Release\hello_world.exe || echo "Running binary to check version"
-          strings .\build\Release\hello_world.exe | findstr "1.0" | head -5
+          .\build\Release\hello_world.exe
+          strings .\build\Release\hello_world.exe | findstr "v1\.0 version" | head -5
           
       - uses: actions/upload-artifact@v4
         with:
           name: hello-world-windows
           path: build/Release/hello_world.exe
 
-  create-release:
-    name: Create Release
+  publish-release:
+    name: Publish Release
     runs-on: ubuntu-latest
-    needs: [build-ubuntu, build-windows]
-    if: github.ref == 'refs/heads/main' 
+    needs: [create-release, build-ubuntu, build-windows]
     
     permissions:
       contents: write
@@ -85,24 +106,17 @@ jobs:
         with:
           path: ./artifacts
           
-      - name: Verify final versions
-        run: |
-          echo "=== Ubuntu binary version ==="
-          strings ./artifacts/hello-world-ubuntu/hello_world | grep -i "1.0" | head -3
-          echo "=== Windows binary version ==="
-          strings ./artifacts/hello-world-windows/hello_world.exe | grep -i "1.0" | head -3
-          
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             ./artifacts/hello-world-ubuntu/hello_world
             ./artifacts/hello-world-windows/hello_world.exe
-          tag_name: v1.0.${{ github.run_number }}
-          name: Release v1.0.${{ github.run_number }}
+          tag_name: ${{ needs.create-release.outputs.new_tag }}
+          name: Release ${{ needs.create-release.outputs.new_tag }}
           body: |
-            Автоматический релиз сборки №${{ github.run_number }}
+            Автоматический релиз ${{ needs.create-release.outputs.new_tag }}
             
-            ### Что включено:
-            - hello_world (Linux) - версия 1.0.${{ github.run_number }}
-            - hello_world.exe (Windows) - версия 1.0.${{ github.run_number }}
+            ### Содержание:
+            - hello_world (Linux)
+            - hello_world.exe (Windows)
