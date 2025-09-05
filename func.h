@@ -3,5 +3,5 @@
 #include <string>
 
 std::string getversion();
-
+extern int x; 
 #endif
