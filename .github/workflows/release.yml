@@ -14,7 +14,6 @@ jobs:
            rm -rf ${{github.workspace}}/build
            mkdir -p ${{github.workspace}}/build
        - run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DPROJECT_VERSION="1.0.${{ github.run_number }}"
-       - run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release # 2 Настраиваем CMake
        - run: cmake --build ${{github.workspace}}/build --config Release # 3 Собираем проект
        - uses: actions/upload-artifact@v4 # 4 Сохраняем результат сборки
          with:
@@ -29,7 +28,6 @@ jobs:
            Remove-Item -Recurse -Force ${{github.workspace}}/build -ErrorAction SilentlyContinue
            New-Item -ItemType Directory -Path ${{github.workspace}}/build -Force
        - run: cmake -B ${{github.workspace}}/build -DPROJECT_VERSION="1.0.${{ github.run_number }}"
-       - run: cmake -B ${{github.workspace}}/build
        - run: cmake --build ${{github.workspace}}/build --config Release
        - uses: actions/upload-artifact@v4
          with:
