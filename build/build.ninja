@@ -50,7 +50,7 @@ cmake_ninja_workdir = C$:/study/C++SEM3/lab1_actions/build/
 build cmake_object_order_depends_target_hello_world: phony || .
 
 build CMakeFiles/hello_world.dir/main.cpp.obj: CXX_COMPILER__hello_world_unscanned_Debug C$:/study/C++SEM3/lab1_actions/main.cpp || cmake_object_order_depends_target_hello_world
-  DEFINES = -DPROJECT_VERSION=\"\"1.0.0\"\"
+  DEFINES = -DPROJECT_VERSION=\"1.0.0\"
   DEP_FILE = CMakeFiles\hello_world.dir\main.cpp.obj.d
   FLAGS = -g -std=gnu++11
   INCLUDES = -IC:/study/C++SEM3/lab1_actions
@@ -58,7 +58,7 @@ build CMakeFiles/hello_world.dir/main.cpp.obj: CXX_COMPILER__hello_world_unscann
   OBJECT_FILE_DIR = CMakeFiles\hello_world.dir
 
 build CMakeFiles/hello_world.dir/func.cpp.obj: CXX_COMPILER__hello_world_unscanned_Debug C$:/study/C++SEM3/lab1_actions/func.cpp || cmake_object_order_depends_target_hello_world
-  DEFINES = -DPROJECT_VERSION=\"\"1.0.0\"\"
+  DEFINES = -DPROJECT_VERSION=\"1.0.0\"
   DEP_FILE = CMakeFiles\hello_world.dir\func.cpp.obj.d
   FLAGS = -g -std=gnu++11
   INCLUDES = -IC:/study/C++SEM3/lab1_actions

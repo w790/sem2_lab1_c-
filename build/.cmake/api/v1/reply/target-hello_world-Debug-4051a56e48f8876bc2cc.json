@@ -29,19 +29,19 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 9,
+				"line" : 16,
 				"parent" : 0
 			},
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 10,
+				"line" : 19,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 11,
+				"line" : 20,
 				"parent" : 0
 			}
 		]
@@ -59,7 +59,7 @@
 			[
 				{
 					"backtrace" : 2,
-					"define" : "PROJECT_VERSION=\"\"1.0.0\"\""
+					"define" : "PROJECT_VERSION=\"1.0.0\""
 				}
 			],
 			"includes" : 
