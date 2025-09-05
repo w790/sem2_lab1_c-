@@ -13,37 +13,36 @@ jobs:
       
       - name: Clean build directory
         run: |
-          rm -rf ${{github.workspace}}/build
-          mkdir -p ${{github.workspace}}/build
+          rm -rf build
+          mkdir -p build
           
       - name: Configure CMake with version
         run: |
           echo "Setting PROJECT_VERSION to: 1.0.${{ github.run_number }}"
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DPROJECT_VERSION="1.0.${{ github.run_number }}"
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DPROJECT_VERSION="1.0.${{ github.run_number }}"
           
       - name: Debug CMake configuration
         run: |
+          echo "=== Current directory ==="
+          pwd
+          ls -la
+          echo "=== Build directory content ==="
+          ls -la build/
           echo "=== CMakeCache.txt content ==="
-          grep PROJECT_VERSION ${{github.workspace}}/build/CMakeCache.txt || echo "PROJECT_VERSION not found in cache"
-          echo "=== Makefile content ==="
-          grep -i version ${{github.workspace}}/build/CMakeFiles/hello_world.dir/flags.make || echo "Version flags not found"
+          grep PROJECT_VERSION build/CMakeCache.txt || echo "PROJECT_VERSION not found in cache"
           
       - name: Build project
-        run: cmake --build ${{github.workspace}}/build --config Release
+        run: cmake --build build --config Release
         
       - name: Verify version in binary
         run: |
           echo "=== Binary strings analysis ==="
-          strings ${{github.workspace}}/build/hello_world | grep -i "1.0\|version" | head -20
-          echo "=== PROJECT_VERSION macro check ==="
-          strings ${{github.workspace}}/build/hello_world | grep "PROJECT_VERSION" || echo "PROJECT_VERSION macro not found in binary"
-          echo "=== Actual version output ==="
-          ${{github.workspace}}/build/hello_world --version || ${{github.workspace}}/build/hello_world || echo "Cannot run binary"
+          strings build/hello_world | grep -i "1.0\|version" | head -20 || echo "No version strings found"
           
       - uses: actions/upload-artifact@v4
         with:
           name: hello-world-ubuntu
-          path: ${{github.workspace}}/build/hello_world
+          path: build/hello_world
 
   build-windows:
     runs-on: windows-latest 
@@ -52,37 +51,36 @@ jobs:
       
       - name: Clean build directory
         run: |
-          Remove-Item -Recurse -Force ${{github.workspace}}/build -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Path ${{github.workspace}}/build -Force
+          Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path build -Force
           
       - name: Configure CMake with version
         run: |
           echo "Setting PROJECT_VERSION to: 1.0.${{ github.run_number }}"
-          cmake -B ${{github.workspace}}/build -DPROJECT_VERSION="1.0.${{ github.run_number }}"
+          cmake -B build -DPROJECT_VERSION="1.0.${{ github.run_number }}"
           
       - name: Debug CMake configuration
         run: |
+          echo "=== Current directory ==="
+          Get-Location
+          Get-ChildItem
+          echo "=== Build directory content ==="
+          Get-ChildItem build/
           echo "=== CMakeCache.txt content ==="
-          findstr "PROJECT_VERSION" ${{github.workspace}}/build/CMakeCache.txt || echo "PROJECT_VERSION not found in cache"
-          echo "=== Makefile content ==="
-          findstr /i "version" ${{github.workspace}}/build/CMakeFiles/hello_world.dir/flags.make || echo "Version flags not found"
+          Get-Content build/CMakeCache.txt | Select-String "PROJECT_VERSION" || echo "PROJECT_VERSION not found in cache"
           
       - name: Build project
-        run: cmake --build ${{github.workspace}}/build --config Release
+        run: cmake --build build --config Release
         
       - name: Verify version in binary
         run: |
           echo "=== Binary strings analysis ==="
-          strings ${{github.workspace}}/build/Release/hello_world.exe | findstr /i "1.0 version" || echo "No version strings found"
-          echo "=== PROJECT_VERSION macro check ==="
-          strings ${{github.workspace}}/build/Release/hello_world.exe | findstr "PROJECT_VERSION" || echo "PROJECT_VERSION macro not found in binary"
-          echo "=== Actual version output ==="
-          ${{github.workspace}}/build/Release/hello_world.exe --version || ${{github.workspace}}/build/Release/hello_world.exe || echo "Cannot run binary"
+          strings build/Release/hello_world.exe | Select-String -Pattern "1.0|version" | Select-Object -First 10 || echo "No version strings found"
           
       - uses: actions/upload-artifact@v4
         with:
           name: hello-world-windows
-          path: ${{github.workspace}}/build/Release/hello_world.exe
+          path: build/Release/hello_world.exe
 
   create-release:
     name: Create Release
@@ -103,17 +101,6 @@ jobs:
         run: |
           echo "=== Artifacts structure ==="
           ls -la ./artifacts/
-          echo "=== Ubuntu artifact ==="
-          ls -la ./artifacts/hello-world-ubuntu/
-          echo "=== Windows artifact ==="
-          ls -la ./artifacts/hello-world-windows/
-          
-      - name: Final version check
-        run: |
-          echo "=== Checking Ubuntu binary version ==="
-          strings ./artifacts/hello-world-ubuntu/hello_world | grep -i "1.0\|version" | head -5
-          echo "=== Checking Windows binary version ==="
-          strings ./artifacts/hello-world-windows/hello_world.exe | grep -i "1.0\|version" | head -5
           
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -123,9 +110,4 @@ jobs:
             ./artifacts/hello-world-windows/hello_world.exe
           tag_name: v1.0.${{ github.run_number }}
           name: Release v1.0.${{ github.run_number }}
-          body: |
-            Автоматический релиз сборки №${{ github.run_number }}
-            
-            ### Версии бинарников:
-            - Linux: 1.0.${{ github.run_number }}
-            - Windows: 1.0.${{ github.run_number }}
+          body: Автоматический релиз сборки №${{ github.run_number }}
