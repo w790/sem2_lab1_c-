@@ -1,64 +1,131 @@
-name: C++ build and release # Название нашего процесса
+name: C++ build and release
 
 on:
-  push: #При любом пуше (заливке кода) в репозиторий
+  push:
     branches:
-        - main #Запускаться только если пушим в ветку main
+      - main
 
 jobs:
   build-ubuntu: 
-    runs-on: ubuntu-latest #ОС: последняя Ubuntu
+    runs-on: ubuntu-latest
     steps: 
-       - uses: actions/checkout@v4 # 1 Клонируем наш код
-       - run: |
-           rm -rf ${{github.workspace}}/build
-           mkdir -p ${{github.workspace}}/build
-       - run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DPROJECT_VERSION="1.0.${{ github.run_number }}"
-       - run: cmake --build ${{github.workspace}}/build --config Release # 3 Собираем проект
-       - uses: actions/upload-artifact@v4 # 4 Сохраняем результат сборки
-         with:
+      - uses: actions/checkout@v4
+      
+      - name: Clean build directory
+        run: |
+          rm -rf ${{github.workspace}}/build
+          mkdir -p ${{github.workspace}}/build
+          
+      - name: Configure CMake with version
+        run: |
+          echo "Setting PROJECT_VERSION to: 1.0.${{ github.run_number }}"
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DPROJECT_VERSION="1.0.${{ github.run_number }}"
+          
+      - name: Debug CMake configuration
+        run: |
+          echo "=== CMakeCache.txt content ==="
+          grep PROJECT_VERSION ${{github.workspace}}/build/CMakeCache.txt || echo "PROJECT_VERSION not found in cache"
+          echo "=== Makefile content ==="
+          grep -i version ${{github.workspace}}/build/CMakeFiles/hello_world.dir/flags.make || echo "Version flags not found"
+          
+      - name: Build project
+        run: cmake --build ${{github.workspace}}/build --config Release
+        
+      - name: Verify version in binary
+        run: |
+          echo "=== Binary strings analysis ==="
+          strings ${{github.workspace}}/build/hello_world | grep -i "1.0\|version" | head -20
+          echo "=== PROJECT_VERSION macro check ==="
+          strings ${{github.workspace}}/build/hello_world | grep "PROJECT_VERSION" || echo "PROJECT_VERSION macro not found in binary"
+          echo "=== Actual version output ==="
+          ${{github.workspace}}/build/hello_world --version || ${{github.workspace}}/build/hello_world || echo "Cannot run binary"
+          
+      - uses: actions/upload-artifact@v4
+        with:
           name: hello-world-ubuntu
           path: ${{github.workspace}}/build/hello_world
 
   build-windows:
     runs-on: windows-latest 
     steps:
-       - uses: actions/checkout@v4
-       - run: |
-           Remove-Item -Recurse -Force ${{github.workspace}}/build -ErrorAction SilentlyContinue
-           New-Item -ItemType Directory -Path ${{github.workspace}}/build -Force
-       - run: cmake -B ${{github.workspace}}/build -DPROJECT_VERSION="1.0.${{ github.run_number }}"
-       - run: cmake --build ${{github.workspace}}/build --config Release
-       - uses: actions/upload-artifact@v4
-         with:
+      - uses: actions/checkout@v4
+      
+      - name: Clean build directory
+        run: |
+          Remove-Item -Recurse -Force ${{github.workspace}}/build -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path ${{github.workspace}}/build -Force
+          
+      - name: Configure CMake with version
+        run: |
+          echo "Setting PROJECT_VERSION to: 1.0.${{ github.run_number }}"
+          cmake -B ${{github.workspace}}/build -DPROJECT_VERSION="1.0.${{ github.run_number }}"
+          
+      - name: Debug CMake configuration
+        run: |
+          echo "=== CMakeCache.txt content ==="
+          findstr "PROJECT_VERSION" ${{github.workspace}}/build/CMakeCache.txt || echo "PROJECT_VERSION not found in cache"
+          echo "=== Makefile content ==="
+          findstr /i "version" ${{github.workspace}}/build/CMakeFiles/hello_world.dir/flags.make || echo "Version flags not found"
+          
+      - name: Build project
+        run: cmake --build ${{github.workspace}}/build --config Release
+        
+      - name: Verify version in binary
+        run: |
+          echo "=== Binary strings analysis ==="
+          strings ${{github.workspace}}/build/Release/hello_world.exe | findstr /i "1.0 version" || echo "No version strings found"
+          echo "=== PROJECT_VERSION macro check ==="
+          strings ${{github.workspace}}/build/Release/hello_world.exe | findstr "PROJECT_VERSION" || echo "PROJECT_VERSION macro not found in binary"
+          echo "=== Actual version output ==="
+          ${{github.workspace}}/build/Release/hello_world.exe --version || ${{github.workspace}}/build/Release/hello_world.exe || echo "Cannot run binary"
+          
+      - uses: actions/upload-artifact@v4
+        with:
           name: hello-world-windows
           path: ${{github.workspace}}/build/Release/hello_world.exe
 
-  create-release: #Создание релиза
+  create-release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [build-ubuntu, build-windows] #ждем, пока обе сборки успешно завершатся
-    # Делаем релиз только с ветки main
+    needs: [build-ubuntu, build-windows]
     if: github.ref == 'refs/heads/main' 
     
     permissions:
       contents: write
 
     steps:
-      - name: Download all artifacts #Скачиваем все собранные артефакты
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: ./artifacts  #Скачиваем все артефакты в папку ./artifacts
-
-      - name: List files #Посмотрим, что скачалось (для отладки)
-        run: ls -R ./artifacts
-
-      - name: Create Release #Создаем релиз на GitHub
+          path: ./artifacts
+          
+      - name: List downloaded files
+        run: |
+          echo "=== Artifacts structure ==="
+          ls -la ./artifacts/
+          echo "=== Ubuntu artifact ==="
+          ls -la ./artifacts/hello-world-ubuntu/
+          echo "=== Windows artifact ==="
+          ls -la ./artifacts/hello-world-windows/
+          
+      - name: Final version check
+        run: |
+          echo "=== Checking Ubuntu binary version ==="
+          strings ./artifacts/hello-world-ubuntu/hello_world | grep -i "1.0\|version" | head -5
+          echo "=== Checking Windows binary version ==="
+          strings ./artifacts/hello-world-windows/hello_world.exe | grep -i "1.0\|version" | head -5
+          
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: | #перечисляем файлы, которые надо добавить в релиз
+          files: |
             ./artifacts/hello-world-ubuntu/hello_world
             ./artifacts/hello-world-windows/hello_world.exe
-          tag_name: v1.0.${{ github.run_number }} 
+          tag_name: v1.0.${{ github.run_number }}
           name: Release v1.0.${{ github.run_number }}
-          body: Автоматический релиз сборки №${{ github.run_number }}
+          body: |
+            Автоматический релиз сборки №${{ github.run_number }}
+            
+            ### Версии бинарников:
+            - Linux: 1.0.${{ github.run_number }}
+            - Windows: 1.0.${{ github.run_number }}
