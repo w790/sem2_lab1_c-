@@ -7,7 +7,6 @@
 int main(){
     int a;
     std::cout << "Hello, World! Version " << PROJECT_VERSION;
-    std::cout << "проверка на работоспособность";
     std::cin >> a;
     return 0;
 }
