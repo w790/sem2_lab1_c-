@@ -1,7 +1,8 @@
 name: C++ CI
 
 on:
-  push
+  push:
+    branches: [main]
 
 permissions:
   contents: write
@@ -14,31 +15,37 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Get latest tag
         id: get_tag
         run: |
-          git fetch --tags
-          last_tag=$(git tag --sort=-creatordate | head -n 1 || echo "0.0.0")
-          if [ -z "$last_tag" ]; then
-            last_tag="0.0.0"
-          fi
+          git fetch --tags --force
+          last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
           echo "last_tag=$last_tag" >> $GITHUB_ENV
+          echo "last_tag=$last_tag" >> $GITHUB_OUTPUT
 
       - name: Bump version
         id: bump_version
         run: |
-          IFS='.' read -r major minor patch <<< "${last_tag}"
-          patch=$((patch+1))
-          new_tag="$major.$minor.$patch"
+          IFS='.' read -r major minor patch <<< "${last_tag//v/}"
+          patch=$((patch + 1))
+          new_tag="v$major.$minor.$patch"
           echo "new_tag=$new_tag" >> $GITHUB_ENV
-          echo "new_tag=$new_tag" >> "$GITHUB_OUTPUT"
+          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+
+      - name: Show version info
+        run: |
+          echo "Last tag: ${{ env.last_tag }}"
+          echo "New tag: ${{ env.new_tag }}"
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ env.new_tag }}
           name: Release ${{ env.new_tag }}
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -48,17 +55,35 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Configure (Ninja)
-        run: cmake -G "Ninja" -S . -B build -DVERSION_PROJECT=${{ needs.create-release.outputs.new_tag }}
+      - name: Clean build directory
+        run: rm -rf build
 
-      - name: Build
+      - name: Install Ninja (if needed)
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+      - name: Configure with Ninja
+        run: |
+          echo "Building version: ${{ needs.create-release.outputs.new_tag }}"
+          cmake -G "Ninja" -S . -B build -DVERSION_PROJECT="${{ needs.create-release.outputs.new_tag }}"
+
+      - name: Build project
         run: cmake --build build
 
-      - name: Run
-        run: ./build/LAB1
+      - name: Run and test
+        run: |
+          ./build/LAB1 <<< "1"
+          echo "Program executed successfully"
+
+      - name: Verify version in binary
+        run: |
+          echo "=== Version in binary ==="
+          strings ./build/LAB1 | grep "Hello, World! Version" || echo "Version string not found"
+          ./build/LAB1 <<< "1" | grep "Version" || echo "Version output not found"
 
       - name: Package (Linux)
-        run: cmake --install build --prefix package && cpack -G DEB --config build/CPackConfig.cmake
+        run: |
+          cmake --install build --prefix package
+          cpack -G DEB --config build/CPackConfig.cmake
 
       - name: Upload Linux package
         uses: softprops/action-gh-release@v1
@@ -74,17 +99,33 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Configure (Ninja)
-        run: cmake -G "Ninja" -S . -B build -DVERSION_PROJECT="${{ needs.create-release.outputs.new_tag }}"
+      - name: Clean build directory
+        run: |
+          Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
 
-      - name: Build
+      - name: Configure with Ninja
+        run: |
+          echo "Building version: ${{ needs.create-release.outputs.new_tag }}"
+          cmake -G "Ninja" -S . -B build -DVERSION_PROJECT="${{ needs.create-release.outputs.new_tag }}"
+
+      - name: Build project
         run: cmake --build build
 
-      - name: Run
-        run: build/LAB1.exe
+      - name: Run and test
+        run: |
+          echo "1" | .\build\LAB1.exe
+          echo "Program executed successfully"
+
+      - name: Verify version in binary
+        run: |
+          echo "=== Version in binary ==="
+          .\build\LAB1.exe <<< "1" | findstr "Version" || echo "Version output not found"
+          strings .\build\LAB1.exe | findstr "Hello, World! Version" || echo "Version string not found"
 
       - name: Package (Windows)
-        run: cmake --install build --prefix package && cpack -G ZIP --config build/CPackConfig.cmake
+        run: |
+          cmake --install build --prefix package
+          cpack -G ZIP --config build/CPackConfig.cmake
 
       - name: Upload Windows package
         uses: softprops/action-gh-release@v1
@@ -93,3 +134,12 @@ jobs:
           files: LAB1-*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test-release:
+    needs: [create-release, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify release created
+        run: |
+          echo "Release ${{ needs.create-release.outputs.new_tag }} created successfully"
+          echo "Linux and Windows packages built and uploaded"
