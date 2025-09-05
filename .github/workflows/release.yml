@@ -58,7 +58,7 @@ jobs:
       - name: Clean build directory
         run: rm -rf build
 
-      - name: Install Ninja (if needed)
+      - name: Install Ninja
         run: sudo apt-get update && sudo apt-get install -y ninja-build
 
       - name: Configure with Ninja
@@ -71,14 +71,19 @@ jobs:
 
       - name: Run and test
         run: |
-          ./build/LAB1 <<< "1"
+          echo "1" | ./build/LAB1
           echo "Program executed successfully"
 
-      - name: Verify version in binary
+      - name: Verify version
         run: |
-          echo "=== Version in binary ==="
-          strings ./build/LAB1 | grep "Hello, World! Version" || echo "Version string not found"
-          ./build/LAB1 <<< "1" | grep "Version" || echo "Version output not found"
+          echo "=== Program output ==="
+          output=$(echo "1" | ./build/LAB1)
+          echo "$output"
+          if echo "$output" | grep -q "Version"; then
+            echo "✓ Version found in output"
+          else
+            echo "✗ Version not found in output"
+          fi
 
       - name: Package (Linux)
         run: |
@@ -116,11 +121,16 @@ jobs:
           echo "1" | .\build\LAB1.exe
           echo "Program executed successfully"
 
-      - name: Verify version in binary
+      - name: Verify version
         run: |
-          echo "=== Version in binary ==="
-          .\build\LAB1.exe <<< "1" | findstr "Version" || echo "Version output not found"
-          strings .\build\LAB1.exe | findstr "Hello, World! Version" || echo "Version string not found"
+          echo "=== Program output ==="
+          $output = echo "1" | .\build\LAB1.exe
+          echo $output
+          if ($output -like "*Version*") {
+            echo "✓ Version found in output"
+          } else {
+            echo "✗ Version not found in output"
+          }
 
       - name: Package (Windows)
         run: |
@@ -134,12 +144,3 @@ jobs:
           files: LAB1-*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  test-release:
-    needs: [create-release, build-linux, build-windows]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Verify release created
-        run: |
-          echo "Release ${{ needs.create-release.outputs.new_tag }} created successfully"
-          echo "Linux and Windows packages built and uploaded"
