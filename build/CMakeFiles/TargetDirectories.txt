@@ -1,9 +1,5 @@
-C:/study/C++SEM3/lab1_actions/build/CMakeFiles/LAB1.dir
-C:/study/C++SEM3/lab1_actions/build/CMakeFiles/package.dir
-C:/study/C++SEM3/lab1_actions/build/CMakeFiles/package_source.dir
-C:/study/C++SEM3/lab1_actions/build/CMakeFiles/edit_cache.dir
-C:/study/C++SEM3/lab1_actions/build/CMakeFiles/rebuild_cache.dir
-C:/study/C++SEM3/lab1_actions/build/CMakeFiles/list_install_components.dir
-C:/study/C++SEM3/lab1_actions/build/CMakeFiles/install.dir
-C:/study/C++SEM3/lab1_actions/build/CMakeFiles/install/local.dir
-C:/study/C++SEM3/lab1_actions/build/CMakeFiles/install/strip.dir
+C:/Users/pag28/sem2_lab1_c-/build/CMakeFiles/LAB1.dir
+C:/Users/pag28/sem2_lab1_c-/build/CMakeFiles/PACKAGE.dir
+C:/Users/pag28/sem2_lab1_c-/build/CMakeFiles/INSTALL.dir
+C:/Users/pag28/sem2_lab1_c-/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/pag28/sem2_lab1_c-/build/CMakeFiles/ZERO_CHECK.dir
